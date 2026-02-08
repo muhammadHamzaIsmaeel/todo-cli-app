@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nexa-backend
+description: A Helm chart for Nexa Todo Chatbot Backend (FastAPI + OpenAI Agents + MCP)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

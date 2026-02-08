@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: nexa-frontend
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: nexa.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  - name: NEXT_PUBLIC_API_URL
+    value: "http://nexa-backend:8000"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

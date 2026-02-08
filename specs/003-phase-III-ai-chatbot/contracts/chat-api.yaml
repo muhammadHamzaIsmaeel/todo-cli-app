@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: AI Todo Chatbot API
+  description: API for the AI-powered conversational todo management system
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Development server
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Process a chat message and return AI response
+      description: Receives a user message, processes it through the AI agent with conversation history, and returns the AI's response
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the user sending the message
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: The user's message to the chatbot
+                  example: "Add a task to buy groceries"
+      responses:
+        '200':
+          description: Successful response from the AI chatbot
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - response
+                  - conversation_id
+                properties:
+                  response:
+                    type: string
+                    description: The AI's response to the user
+                    example: "Task 'buy groceries' has been added successfully!"
+                  conversation_id:
+                    type: string
+                    description: The ID of the conversation for continuity
+                    example: "conv_abc123xyz"
+                  action_taken:
+                    type: string
+                    description: The action taken by the AI (optional)
+                    example: "add_task"
+        '400':
+          description: Invalid request (malformed JSON, missing fields)
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+        '403':
+          description: Forbidden (user doesn't have access to this user_id)
+        '500':
+          description: Internal server error
+      security:
+        - BearerAuth: []
+
+  /api/conversations/{conversation_id}:
+    get:
+      summary: Get conversation history
+      description: Retrieve the history of messages for a specific conversation
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: The ID of the conversation to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conversation history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversation
+                  - messages
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+        '403':
+          description: Forbidden (user doesn't have access to this conversation)
+        '404':
+          description: Conversation not found
+        '500':
+          description: Internal server error
+      security:
+        - BearerAuth: []
+
+components:
+  schemas:
+    Conversation:
+      type: object
+      required:
+        - id
+        - user_id
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the conversation
+          example: "conv_abc123xyz"
+        user_id:
+          type: string
+          description: ID of the user who owns this conversation
+          example: "user_def456uvw"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the conversation was created
+          example: "2023-10-20T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of the last activity in the conversation
+          example: "2023-10-20T11:30:00Z"
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the message
+          example: "msg_ghi789rst"
+        conversation_id:
+          type: string
+          description: ID of the conversation this message belongs to
+          example: "conv_abc123xyz"
+        role:
+          type: string
+          enum: [user, assistant]
+          description: Role of the message sender
+          example: "user"
+        content:
+          type: string
+          description: The content of the message
+          example: "Add a task to buy groceries"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the message was created
+          example: "2023-10-20T10:05:00Z"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint

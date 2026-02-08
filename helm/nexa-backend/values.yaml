@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: nexa-backend
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  - name: PORT
+    value: "8000"
+  - name: BETTER_AUTH_URL
+    value: "http://nexa-backend:8000"
+
+secrets:
+  databaseUrl: "${DATABASE_URL}"
+  betterAuthSecret: "${BETTER_AUTH_SECRET}"
+  jwtSecret: "${JWT_SECRET}"
+  openaiApiKey: "${OPENAI_API_KEY}"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

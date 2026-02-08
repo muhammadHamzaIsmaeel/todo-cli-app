@@ -1,0 +1,236 @@
+# Kubernetes Deployment API Contract
+
+## Overview
+
+This contract defines the expected API endpoints and behaviors for the deployed Todo Chatbot application in the Kubernetes environment. It specifies the interfaces between frontend, backend, and database components.
+
+## Backend API Endpoints
+
+### Health Check
+```
+GET /health
+```
+
+**Description**: Check the health status of the backend service
+
+**Response**:
+- 200: Healthy status
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-08T19:35:00Z",
+  "dependencies": {
+    "database": "connected",
+    "mcp_server": "available"
+  }
+}
+```
+
+### Task Operations via MCP Server
+The backend exposes MCP (Model Context Protocol) server for AI agents to interact with task operations.
+
+#### Add Task
+```
+POST /mcp/tasks
+```
+
+**Description**: Add a new task via MCP server
+
+**Request Body**:
+```json
+{
+  "operation": "add_task",
+  "params": {
+    "title": "string",
+    "description": "string",
+    "due_date": "string (optional)"
+  }
+}
+```
+
+**Response**:
+- 200: Task created successfully
+```json
+{
+  "success": true,
+  "task_id": "string",
+  "message": "Task created successfully"
+}
+```
+
+#### List Tasks
+```
+GET /mcp/tasks
+```
+
+**Description**: Retrieve all tasks
+
+**Response**:
+- 200: Tasks retrieved successfully
+```json
+{
+  "success": true,
+  "tasks": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "completed": "boolean",
+      "created_at": "string (ISO 8601)",
+      "due_date": "string (ISO 8601, optional)"
+    }
+  ]
+}
+```
+
+#### Complete Task
+```
+PUT /mcp/tasks/{task_id}/complete
+```
+
+**Description**: Mark a task as completed
+
+**Response**:
+- 200: Task updated successfully
+```json
+{
+  "success": true,
+  "message": "Task marked as completed"
+}
+```
+
+#### Delete Task
+```
+DELETE /mcp/tasks/{task_id}
+```
+
+**Description**: Delete a task
+
+**Response**:
+- 200: Task deleted successfully
+```json
+{
+  "success": true,
+  "message": "Task deleted successfully"
+}
+```
+
+## Frontend API Endpoints
+
+### Chat Interface
+```
+POST /api/chat
+```
+
+**Description**: Process natural language input and return chat response
+
+**Request Body**:
+```json
+{
+  "message": "string",
+  "conversation_id": "string (optional)"
+}
+```
+
+**Response**:
+- 200: Chat response generated
+```json
+{
+  "response": "string",
+  "conversation_id": "string",
+  "actions_taken": [
+    {
+      "action": "string",
+      "result": "string"
+    }
+  ]
+}
+```
+
+## Database Schema Contract
+
+### Tasks Table
+```
+Table: tasks
+```
+
+**Columns**:
+- `id`: UUID (primary key, not null)
+- `title`: VARCHAR(255) (not null)
+- `description`: TEXT (nullable)
+- `completed`: BOOLEAN (default: false)
+- `created_at`: TIMESTAMP (default: current timestamp)
+- `updated_at`: TIMESTAMP (default: current timestamp)
+- `due_date`: TIMESTAMP (nullable)
+
+### Conversations Table
+```
+Table: conversations
+```
+
+**Columns**:
+- `id`: UUID (primary key, not null)
+- `user_id`: UUID (foreign key, nullable)
+- `created_at`: TIMESTAMP (default: current timestamp)
+- `updated_at`: TIMESTAMP (default: current timestamp)
+
+### Messages Table
+```
+Table: messages
+```
+
+**Columns**:
+- `id`: UUID (primary key, not null)
+- `conversation_id`: UUID (foreign key, not null)
+- `role`: VARCHAR(50) (not null) - ('user', 'assistant', 'system')
+- `content`: TEXT (not null)
+- `created_at`: TIMESTAMP (default: current timestamp)
+
+## Service Dependencies
+
+### Frontend Service
+- **Name**: `nexa-frontend`
+- **Port**: 3000 (NodePort/ClusterIP)
+- **Environment Variables**:
+  - `BACKEND_URL`: URL of the backend service
+  - `NEXT_PUBLIC_OPENAI_DOMAIN_KEY`: Domain key for OpenAI ChatKit
+
+### Backend Service
+- **Name**: `nexa-backend`
+- **Port**: 8000 (ClusterIP)
+- **Environment Variables**:
+  - `DATABASE_URL`: Connection string for PostgreSQL
+  - `OPENAI_API_KEY`: API key for OpenAI services
+  - `BETTER_AUTH_SECRET`: Secret for authentication
+  - `BETTER_AUTH_URL`: Base URL for authentication
+
+### Database Service
+- **Name**: `postgres-db-postgresql`
+- **Port**: 5432 (ClusterIP)
+- **Connection Details**:
+  - Host: `postgres-db-postgresql`
+  - Database: `nexa_db`
+  - Username: `postgres`
+  - Password: stored in Kubernetes Secret
+
+## Kubernetes Resource Contracts
+
+### Deployment Configuration
+Each service deployment must include:
+- Proper resource limits and requests
+- Health checks (liveness and readiness probes)
+- Environment variable configuration
+- Proper service account permissions
+
+### Service Configuration
+Each service must define:
+- Appropriate service type (ClusterIP, NodePort)
+- Correct port mappings
+- Proper selectors to match deployment pods
+- Load balancing configuration
+
+### Ingress Configuration (if used)
+- TLS termination (if applicable)
+- Path-based routing
+- Backend service mapping
+- Rate limiting (if applicable)
